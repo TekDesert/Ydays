@@ -69,41 +69,56 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
 
   if(req.params.id !== undefined){
 
-    const date = new Date()
+    console.log("HERE")
 
+    const date = new Date()
     var reservation = await reservationModel.findOne({_id: mongoose.Types.ObjectId(req.params.id)})
 
-    if (reservation.isScanned === 0 ){
+    if (reservation.isScanned == 0 ){
+
 
       console.log("CHECK IN !")
+
 
       reservation.actualArrivalDate = date
       reservation.isScanned = reservation.isScanned + 1
 
       reservation.save()
-    }else if(reservation.isScanned === 1){
+
+      res.status(200).send({message:"Welcome to our parking !!!"})
+
+    }else if(reservation.isScanned == 1){
+
+      
 
       console.log("DEPARTURE !")
 
       reservation.actualDepartureDate = date
       reservation.isScanned = reservation.isScanned + 1
 
+
       reservation.save()
 
-    }else{
+      var seconds = (Math.abs(reservation.actualArrivalDate - reservation.actualDepartureDate)/1000)
 
-      var seconds = (reservation.actualDepartureDate.getTime() - reservation.actualArrivalDate.getTime()) / 1000;
+      totalPrice = 0.005*seconds
+
+      totalPrice = (totalPrice < 0.01) ? 0.01 : Math.round(totalPrice * 100) / 100
 
       console.log("CHECKOUT !" + (seconds))
+      console.log("Total Price : " + totalPrice)
+
+      res.status(200).send([{message:"Thanks for visiting !"}, {total: totalPrice}])
+
     }
 
-    var userData = await reservationModel.findOneAndUpdate(
+    /*var userData = await reservationModel.findOneAndUpdate(
       {_id: mongoose.Types.ObjectId(req.params.id)},
-      { actualArrivalDate: date, $inc:{ isScanned: 1}   },
+      {  $inc:{ isScanned: 1}   },
       {useFindAndModify: false}
-    )
+    )*/
 
-    res.status(200).send({message:"Welcome to our parking !!!"})
+    
 
   }else{
     res.status(403).send({message:"Please verify your link and try again"})
