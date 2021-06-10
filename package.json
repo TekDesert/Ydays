@@ -17,6 +17,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.12.3",
     "nodemailer": "^6.6.1",
+    "qrcode": "^1.4.4",
     "xoauth2": "^1.2.0"
   }
 }

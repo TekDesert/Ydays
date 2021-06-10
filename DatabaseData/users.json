@@ -1,0 +1,26 @@
+[{
+  "_id": {
+    "$oid": "60c1ed58152c951f80399fb4"
+  },
+  "reservations": [
+    {
+      "$oid": "60c1edcdd405704d9422aac4"
+    },
+    {
+      "$oid": "60c2076f6239133bb09fb6cc"
+    },
+    {
+      "$oid": "60c20d0107df3816c4e8487d"
+    }
+  ],
+  "username": "samy",
+  "email": "samy.simon@ynov.com",
+  "password": "$2b$04$6pXnMw7utMnxdQMidQgEzeXL2PuBL.dcjP/Zz1mqSDB7Gv7RjSuye",
+  "profilePicture": "default.jpg",
+  "solde": 100,
+  "isBlocked": false,
+  "isAdmin": false,
+  "online": true,
+  "emailConfirmed": true,
+  "__v": 0
+}]

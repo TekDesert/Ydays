@@ -7,14 +7,14 @@ dotenv.config();
 const mongoose = require('mongoose');
 mongoose.connect(process.env.DATABASE, {useNewUrlParser: true, useUnifiedTopology: true});
 
-var cors = require('cors')
+const cors = require('cors')
 app.use(cors())
 
-var usersRouter = require('./routes/userRoute');
-var formRouter = require('./routes/reservationRoute');
-var confirmationRouter = require('./routes/confirmationRoute');
+const usersRouter = require('./routes/userRoute');
+const reservationRouter = require('./routes/reservationRoute');
+const confirmationRouter = require('./routes/confirmationRoute');
 app.use('/user', usersRouter)
-app.use('/form', formRouter)
+app.use('/reservation', reservationRouter)
 app.use('/confirmation', confirmationRouter)
 
 

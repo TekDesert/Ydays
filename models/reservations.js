@@ -9,10 +9,10 @@ const userSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
     },
     arrivalDate: {
-        type: String
+        type: Date
     },
     departureDate: {
-        type: String
+        type: Date
     },
     carPlate: {
         type: String
@@ -20,6 +20,18 @@ const userSchema = mongoose.Schema({
     QRCode: {
         type: String
     },
+    isScanned: {
+        type: Number
+    },
+    actualArrivalDate: {
+        type: Date
+    },
+    actualDepartureDate:{
+        type: Date
+    },
+    transactionConfirmed: {
+        type: Boolean
+    }
            
 });
 

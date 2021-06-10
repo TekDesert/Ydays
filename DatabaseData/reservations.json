@@ -1,0 +1,24 @@
+[{
+  "_id": {
+    "$oid": "60c20d0107df3816c4e8487d"
+  },
+  "userId": {
+    "$oid": "60c1ed58152c951f80399fb4"
+  },
+  "parkingId": {
+    "$oid": "60c20d0107df3816c4e8487e"
+  },
+  "arrivalDate": {
+    "$date": "2021-05-05T00:00:00Z"
+  },
+  "departureDate": {
+    "$date": "2021-05-05T00:00:00Z"
+  },
+  "carPlate": "552dasdka85",
+  "QRCode": "2da53slq",
+  "isScanned": 0,
+  "actualArrivalDate": null,
+  "actualDepartureDate": null,
+  "transactionConfirmed": false,
+  "__v": 0
+}]
