@@ -12,8 +12,10 @@ app.use(cors())
 
 var usersRouter = require('./routes/userRoute');
 var formRouter = require('./routes/reservationRoute');
+var confirmationRouter = require('./routes/confirmationRoute');
 app.use('/user', usersRouter)
 app.use('/form', formRouter)
+app.use('/confirmation', confirmationRouter)
 
 
 

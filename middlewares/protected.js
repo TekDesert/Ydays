@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 const auth = (req, res, next) =>{
 
-    var autorisation = req.headers["authorization"]
+  var autorisation = req.headers["authorization"]
 
   if(autorisation){
     //user is authorized (protected route)
