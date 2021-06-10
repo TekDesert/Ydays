@@ -37,7 +37,9 @@ router.post("/", jsonParser, async (req, res) => {
   console.log(req.body)
 
 
-  if(userInfos.username &&  userInfos.email && userInfos.password) {
+  if(userInfos.username &&  userInfos.email && userInfos.password && userInfos.passwordConfirm) {
+
+    if(userInfos.password === userInfos.passwordConfirm){
 
       console.log("GOOD FOR REGISTER !")
 
@@ -51,6 +53,7 @@ router.post("/", jsonParser, async (req, res) => {
       else {
 
           var crypted_passwd = bcrypt.hashSync(userInfos.password, 1);
+          const image = (userInfos.image === undefined) ? "default.jpg" :  userInfos.image
 
 
           var newUser = {
@@ -59,7 +62,7 @@ router.post("/", jsonParser, async (req, res) => {
             "username": userInfos.username, 
             "email": userInfos.email,
             "password": crypted_passwd,
-            "profilePicture": "default.jpg",
+            "profilePicture": image,
             "solde": 100,
             "reservations": [],
             "isBlocked": false,
@@ -121,11 +124,14 @@ router.post("/", jsonParser, async (req, res) => {
               });
 
               console.log("Message sent: %s", info.messageId);
-              // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
 
-
-         
       }
+
+    }else{
+      res.status(422).send({message: "Error : passwords do not match"}) 
+    }
+
+      
 
 
   }else{
@@ -207,7 +213,7 @@ router.post("/logout", jsonParser, async (req, res) => {
 })
 
 
-router.get("/online", jsonParser, async (req, res) => {
+router.get("/online", [jsonParser,auth, async (req, res) => {
     
 
       var getAllOnlineUsers = await userModel.find({}, { password: 0 } ).where('online').equals(true)
@@ -223,7 +229,7 @@ router.get("/online", jsonParser, async (req, res) => {
 
       }
 
-})
+}])
 
 router.get("/", [jsonParser,auth, async (req, res) => {
     

@@ -15,6 +15,8 @@ var mongoose = require('mongoose');
 const { auth } = require('../middlewares/protected');
 const reservationModel = require('../models/reservations');
 
+const nodemailer = require("nodemailer");
+
 const app = express();
 app.use(express.json())
 
@@ -22,24 +24,11 @@ app.use(express.json())
 // create application/json parser
 var jsonParser = bodyParser.json()
 
-sendEmailQR = async (userId) => {
+sendEmailQR = async (userId, QRCode) => {
 
-  var userData =  await formModel.aggregate([
-    {
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user"
-      }
-    },
-    { $unwind: "$user" },
-    { $match: { userId: mongoose.Types.ObjectId(userId) } },
-    { $project: { "user.password": 0, "user._id":0, "user.username":0, "user.profilePicture":0,"user.isBlocked":0,"user.isAdmin":0, "user.online":0,"user.emailConfirmed":0,"user.__v":0} } // Return all but the specified fields
-  ]);
+ var userData = await userModel.findOne({"_id": mongoose.Types.ObjectId(userId)}, {email: 1, username: 1})
 
-  console.log("hereeeee")
-  console.log(userData)
+
   //console.log("SENDING EMAIL TO : " + userData.user.email)
   // create reusable transporter object using the default SMTP transport
   let transporter = nodemailer.createTransport({
@@ -53,23 +42,15 @@ sendEmailQR = async (userId) => {
       }
   });
 
-  //CREATE JWT TOKEN THAT EXPIRES IN ONE HOUR
-  var token = jwt.sign({
-    exp: Math.floor(Date.now() / 1000) + (60 * 60),
-    data: newUser._id
-  }, process.env.TOKEY);
-
-  console.log(token)
-
   // send mail with defined transport object
   let info = await transporter.sendMail({
     from: '"Parking Meeter by Exeption Guys " <avoraparking.meeter@gmail.com>', // sender address
-    to: userData.user.email, // list of receivers
+    to: userData.email, // list of receivers
     subject: "You're code is generated !🚗✔", // Subject line
     text: "Your QR code is here", // plain text body
-    html: `<h1>Hello ${newUser.username} !</h1>
+    html: `<h1>Hello ${userData.username} !</h1>
           <h3 style="color:grey">Please find your QRCode below</h3>
-          <img style="height:375px;width:500px" src="https://image.freepik.com/vecteurs-libre/mot-bienvenue-personnages-dessins-animes_81522-4207.jpg"> 
+          <img  src="${QRCode}"> 
           <br>
           <br>`, // html body
   });
@@ -121,7 +102,9 @@ router.post("/", [jsonParser,auth, async (req, res) => {
           
 
           const id = new ObjectID()
+
           //generation of QR code, this code will be scanned on arrival to parking 
+          
           var qrURL = process.env.API + "/confirmation/QRValidation/"+ id
 
           //qrURL = bcrypt.hashSync(qrURL, 1);
@@ -150,6 +133,7 @@ router.post("/", [jsonParser,auth, async (req, res) => {
                 "isScanned": 0,
                 "actualArrivalDate":"",
                 "actualDepartureDate": "",
+                "price": 0,
                 "transactionConfirmed": false
               }
 
@@ -170,7 +154,9 @@ router.post("/", [jsonParser,auth, async (req, res) => {
               //console.log(src)
               //console.log(qrURL)
 
-              sendEmailQR(userInfos.userId)
+            
+
+              sendEmailQR(userInfos.userId, src)
 
               res.status(200).send([{message: "success"},{_id: newReservation._id, parkingId: newReservation.parkingId, arrivalDate: newReservation.arrivalDate, departureDate: newReservation.departureDate, carPlate: newReservation.carPlate, qrcode: newReservation.QRCode}])
             }
@@ -188,24 +174,103 @@ router.post("/", [jsonParser,auth, async (req, res) => {
 
 }])
 
-
-router.get("/", jsonParser, async (req, res) => {
+//Protected 
+router.get("/", [jsonParser, auth, async (req, res) => {
     
 
-  var getAllForms = await formModel.find({})
+  var getAllreservations = await reservationModel.find({})
 
-  if (getAllUsers) {
+  if (getAllreservations) {
 
-    res.status(200).send(getAllUsers) 
+    res.status(200).send(getAllreservations) 
 
   }
   else {
 
-    res.status(500).send({message: "error fetching all users"}) 
+    res.status(500).send({message: "error fetching all reservations"}) 
 
   }
 
-})
+}])
+
+//Protected : Get reservation based on the user's ID
+router.get("/user/:userId", [jsonParser, auth, async (req, res) => {
+  
+  
+  if(req.params.userId){
+
+    var getUserReservations = await reservationModel.find({userId: mongoose.Types.ObjectId(req.params.userId)})
+
+    if (getUserReservations) {
+  
+      res.status(200).send(getUserReservations) 
+  
+    }
+    else {
+  
+      res.status(500).send({message: "error fetching all reservations"}) 
+  
+    }
+    
+  }else{
+    res.status(422).send({message: "Error : missing field"}) 
+  }
+
+ 
+
+}])
+
+//Protected : Get reservation based on the user's ID
+router.get("/user/dashboard/:userId", [jsonParser, auth, async (req, res) => {
+  
+  
+  if(req.params.userId){
+
+    var getUserReservations = await reservationModel.find({userId: mongoose.Types.ObjectId(req.params.userId)})
+
+    var getUserSolde = await userModel.find({_id: mongoose.Types.ObjectId(req.params.userId)},{solde:1})
+
+    getUserSolde = getUserSolde[0].solde
+
+    if (getUserReservations && getUserSolde) {
+
+      var totalPrice = 0;
+      var totalTime = 0;
+      //For each user reservation, we will take the reservation's info and add it to get global statistics
+      getUserReservations.map( reservation => {
+
+
+        totalTime += (Math.abs(reservation.arrivalDate - reservation.departureDate)/60000)
+
+        totalPrice += reservation.price
+        
+
+      })
+
+    const reservationStats = {
+      totalReservations: getUserReservations.length,
+      totalPrice: totalPrice,
+      totalTime: totalTime,
+      userSolde: getUserSolde
+    }
+    console.log(reservationStats)
+
+      res.status(200).send(reservationStats) 
+  
+    }
+    else {
+  
+      res.status(500).send({message: "error fetching user reservations"}) 
+  
+    }
+    
+  }else{
+    res.status(422).send({message: "Error : missing field"}) 
+  }
+
+ 
+
+}])
 
 
 module.exports = router;

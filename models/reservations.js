@@ -26,6 +26,9 @@ const userSchema = mongoose.Schema({
     actualArrivalDate: {
         type: Date
     },
+    price: {
+        type: Number
+    },
     actualDepartureDate:{
         type: Date
     },

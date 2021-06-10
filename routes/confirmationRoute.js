@@ -20,6 +20,7 @@ const { auth } = require("../middlewares/protected");
 // create application/json parser
 var jsonParser = bodyParser.json()
 
+const reservationModel = require('../models/reservations');
 
 //Confirm Email
 router.get("/:token", jsonParser, async (req, res) => {
@@ -61,6 +62,58 @@ router.get("/:token", jsonParser, async (req, res) => {
   });
 
 })
+
+router.get("/QRValidation/:id", jsonParser, async (req, res) => {
+
+  console.log(req.params)
+
+  if(req.params.id !== undefined){
+
+    const date = new Date()
+
+    var reservation = await reservationModel.findOne({_id: mongoose.Types.ObjectId(req.params.id)})
+
+    if (reservation.isScanned === 0 ){
+
+      console.log("CHECK IN !")
+
+      reservation.actualArrivalDate = date
+      reservation.isScanned = reservation.isScanned + 1
+
+      reservation.save()
+    }else if(reservation.isScanned === 1){
+
+      console.log("DEPARTURE !")
+
+      reservation.actualDepartureDate = date
+      reservation.isScanned = reservation.isScanned + 1
+
+      reservation.save()
+
+    }else{
+
+      var seconds = (reservation.actualDepartureDate.getTime() - reservation.actualArrivalDate.getTime()) / 1000;
+
+      console.log("CHECKOUT !" + (seconds))
+    }
+
+    var userData = await reservationModel.findOneAndUpdate(
+      {_id: mongoose.Types.ObjectId(req.params.id)},
+      { actualArrivalDate: date, $inc:{ isScanned: 1}   },
+      {useFindAndModify: false}
+    )
+
+    res.status(200).send({message:"Welcome to our parking !!!"})
+
+  }else{
+    res.status(403).send({message:"Please verify your link and try again"})
+  }
+
+  
+
+})
+
+
 
 
 module.exports = router;
