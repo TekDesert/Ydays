@@ -63,7 +63,7 @@ router.post("/", jsonParser, async (req, res) => {
             "email": userInfos.email,
             "password": crypted_passwd,
             "profilePicture": image,
-            "plate": userInfos.carPlate,
+            "carPlate": userInfos.carPlate,
             "solde": 100,
             "reservations": [],
             "isBlocked": false,
@@ -248,11 +248,45 @@ router.get("/", [jsonParser,auth, async (req, res) => {
           res.status(500).send({message: "error fetching all users"}) 
 
         }
+}])
 
-     
-  
+router.post("/addSolde", [jsonParser,auth, async (req, res) => {
+  //CHECK USER INFORMATIONS
+  console.log(req.body);
+
+  userInfos = req.body;
+   
+  //var userData = await userModel.findOneAndUpdate({"_id": mongoose.Types.ObjectId(userInfos._id)}, {"online": false})
+
+
+
+  if (userInfos._id, userInfos.amount){
+
+    if(userInfos.amount > 250 || userInfos.amount < 0){
+      
+      res.status(403).send({message: "Please add a valid amount"})
+
+    }else{
+
+      var userData = await userModel.findOneAndUpdate({"_id": mongoose.Types.ObjectId(userInfos._id)}, {$inc:{"solde": userInfos.amount}})
+
+      //RETURN THE USER INFORMATIONS WITH SUCCESS CODE
+      res.status(200).send({message: "successfully added "+userInfos.amount+" to your account"})
+
+    }
+
+    
+
+    
+
+  } 
+  else {
+    res.status(403).send({message: "missing fields"})
+  }
 
 }])
+
+
 
 
 module.exports = router;

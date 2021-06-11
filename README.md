@@ -79,6 +79,19 @@ POST /user/login
 }
 ```
 
+addSolde
+
+```http
+POST user/addSolde
+```
+
+```js
+{
+    "_id": "userId",
+    "amount": "50"
+}
+```
+
 Logout User
 
 ```http
