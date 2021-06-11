@@ -13,6 +13,9 @@ const userSchema = mongoose.Schema({
     solde: {
         type: Number
     },
+    carPlate: {
+        type: String
+    },
     reservations: [],
     password: {
         type: String

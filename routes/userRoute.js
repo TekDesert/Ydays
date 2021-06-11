@@ -37,7 +37,7 @@ router.post("/", jsonParser, async (req, res) => {
   console.log(req.body)
 
 
-  if(userInfos.username &&  userInfos.email && userInfos.password && userInfos.passwordConfirm) {
+  if(userInfos.username &&  userInfos.email && userInfos.carPlate && userInfos.password && userInfos.passwordConfirm) {
 
     if(userInfos.password === userInfos.passwordConfirm){
 
@@ -63,6 +63,7 @@ router.post("/", jsonParser, async (req, res) => {
             "email": userInfos.email,
             "password": crypted_passwd,
             "profilePicture": image,
+            "plate": userInfos.carPlate,
             "solde": 100,
             "reservations": [],
             "isBlocked": false,

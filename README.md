@@ -58,6 +58,7 @@ POST /user
 {
     "username": "johndoe",
     "email": "john@domain.com",
+    "carPlate": "123ABC56",
     "password": "123456",
     "passwordConfirm": "123456",
     "birthDate": "2020-01-03", // Format is important YYYY-MM-DD
@@ -147,8 +148,7 @@ Protected
     "userId":"60c1ed58152c951f80399fb4",
     "arrivalDate":"2021-10-05",
     "departureDate":"2021-11-05",
-    "carPlate": "552dasdka85",
-    "QRCode": "2da53slq"
+    "carPlate": "552dasdka85"
 }
 ```
 
