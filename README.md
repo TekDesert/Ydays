@@ -129,6 +129,7 @@ Retrieve all reservations
 GET /reservation
 
 Protected
+Admin only
 ```
 
 Retrieve a specific user reservation
@@ -179,4 +180,24 @@ Process QR Code scanning for arrival and parking departure
 GET /confirmation/QRValidation/<reservationId>
 ```
 
+## Parkings
 
+Add a new Parking
+
+```http
+POST /parking
+
+Protected
+Admin only
+```
+
+```js
+{
+    "name": "JurassicPark",
+    "description": "my park",
+    "coord": [1,25],
+    "image": "yes.jpg", //Optional
+    "nbCars": 15,
+    "capacity": 70
+}
+```

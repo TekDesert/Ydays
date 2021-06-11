@@ -32,4 +32,44 @@ const auth = (req, res, next) =>{
   
 }
 
-module.exports = {auth}
+const adminAuth = (req, res, next) =>{
+
+  var autorisation = req.headers["authorization"]
+
+  if(autorisation){
+    //user is authorized (protected route)
+    bearer = autorisation.split(' '); //remove "Bearer" before token 
+
+    autorisation = bearer[1];
+       
+
+    jwt.verify(autorisation, process.env.TOKEY, async function(err, decoded) {
+
+      if(err){
+        //There is an error in the token
+        res.status(403).send({message: "Authorization token is invalid"})
+      }else{
+
+        confirmedAdmin = jwt.decode(autorisation).data.isAdmin
+
+        if(confirmedAdmin){
+
+        next()
+
+        }else{
+          res.status(403).send({message: "Access forbidden to non-Admins"})
+        }
+
+      }
+
+    });
+
+    
+
+  }else{
+    res.status(403).send({message: "Missing Autorisation token"})
+  }
+  
+}
+
+module.exports = {auth,adminAuth}

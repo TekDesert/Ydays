@@ -13,9 +13,11 @@ app.use(cors())
 const usersRouter = require('./routes/userRoute');
 const reservationRouter = require('./routes/reservationRoute');
 const confirmationRouter = require('./routes/confirmationRoute');
+const parkingRouter = require('./routes/parkingRoute');
 app.use('/user', usersRouter)
 app.use('/reservation', reservationRouter)
 app.use('/confirmation', confirmationRouter)
+app.use('/parking', parkingRouter)
 
 
 

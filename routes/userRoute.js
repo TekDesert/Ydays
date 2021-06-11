@@ -168,7 +168,12 @@ router.post("/login", jsonParser, async (req, res) => {
           //CREATE JWT TOKEN THAT EXPIRES IN ONE HOUR
           var token = jwt.sign({
             exp: Math.floor(Date.now() / 1000) + (120 * 60),
-            data: 'foobar'
+            data: {
+              id: userData._id,
+              email: userData.email,
+              username: userData.username,
+              isAdmin: userData.isAdmin
+            }
           }, process.env.TOKEY);
 
           console.log(token)

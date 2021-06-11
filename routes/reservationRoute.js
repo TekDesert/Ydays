@@ -12,7 +12,7 @@ const qr = require("qrcode");
 var ObjectID = require('mongodb').ObjectID;
 
 var mongoose = require('mongoose');
-const { auth } = require('../middlewares/protected');
+const { auth, adminAuth } = require('../middlewares/protected');
 const reservationModel = require('../models/reservations');
 
 const nodemailer = require("nodemailer");
@@ -175,7 +175,7 @@ router.post("/", [jsonParser,auth, async (req, res) => {
 }])
 
 //Protected 
-router.get("/", [jsonParser, auth, async (req, res) => {
+router.get("/", [jsonParser, adminAuth, async (req, res) => {
     
 
   var getAllreservations = await reservationModel.find({})
