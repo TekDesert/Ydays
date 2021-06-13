@@ -82,7 +82,9 @@ POST /user/login
 addSolde
 
 ```http
-POST user/addSolde
+POST /user/addSolde
+
+protected
 ```
 
 ```js
@@ -92,15 +94,33 @@ POST user/addSolde
 }
 ```
 
+
 Logout User
 
 ```http
 POST /user/logout
+
+protected
 ```
 
 ```js
 {
     "_id": "john@domain.com" //id of the user to logout
+}
+```
+
+Block User
+
+```http
+POST /user/blockuser
+
+protected
+Admin only
+```
+
+```js
+{
+    "userId": "60c34814b4a9d307e8dee89d" //id of the user to block
 }
 ```
 
@@ -118,15 +138,16 @@ Get all Users
 GET /user
 
 Protected
+Admin only
 ```
 
 
 ## Reservations
 
-Retrieve all reservations
+Retrieve all reservations with optional filters
 
 ```http
-GET /reservation
+GET /reservation?parking=id&arrivalDate=date
 
 Protected
 Admin only
@@ -160,6 +181,7 @@ Protected
 ```js
 {
     "userId":"60c1ed58152c951f80399fb4",
+	"parkingId": "60c37f62bb22bd3fc8a75be6",
     "arrivalDate":"2021-10-05",
     "departureDate":"2021-11-05",
     "carPlate": "552dasdka85"

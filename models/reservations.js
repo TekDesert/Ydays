@@ -33,7 +33,7 @@ const userSchema = mongoose.Schema({
         type: Date
     },
     transactionConfirmed: {
-        type: Boolean
+        type: Number // 0 is not confirmed ; 1 is confirmed ; 2 is canceled
     }
            
 });

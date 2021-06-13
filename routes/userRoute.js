@@ -16,7 +16,7 @@ app.use(express.json())
 const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
 
-const { auth } = require("../middlewares/protected");
+const { auth, adminAuth } = require('../middlewares/protected');
 // create application/json parser
 var jsonParser = bodyParser.json()
 
@@ -149,17 +149,21 @@ router.post("/login", jsonParser, async (req, res) => {
    
   var userData = await userModel.findOne({"email": userInfos.email})
 
+  
+
   if (userData) {
 
       if(bcrypt.compareSync(userInfos.password, userData.password)) {
 
         if(userData.isBlocked){ //Is user is blocked
 
-          res.status(403).send({message: "You do not have the privilege to login"})
+          res.status(403).send({message: "Your account is blocked, please contact customer support for any assitance"})
           
 
         }else if(!userData.emailConfirmed){ //If email is not confirmed
+
           res.status(403).send({message: "Please confirm your email"})
+
         }else{
           //MAKE THE USER APPEAR ONLINE
           userData.online = true;
@@ -196,7 +200,7 @@ router.post("/login", jsonParser, async (req, res) => {
 
 })
 
-router.post("/logout", jsonParser, async (req, res) => {
+router.post("/logout", [jsonParser,auth , async (req, res) => {
   //CHECK USER INFORMATIONS
   console.log(req.body);
 
@@ -216,10 +220,10 @@ router.post("/logout", jsonParser, async (req, res) => {
     res.status(403).send({message: "logout failed / user is probably already logged out"})
   }
 
-})
+}])
 
 
-router.get("/online", [jsonParser,auth, async (req, res) => {
+router.get("/online", [jsonParser, adminAuth, async (req, res) => {
     
 
       var getAllOnlineUsers = await userModel.find({}, { password: 0 } ).where('online').equals(true)
@@ -237,7 +241,43 @@ router.get("/online", [jsonParser,auth, async (req, res) => {
 
 }])
 
-router.get("/", [jsonParser,auth, async (req, res) => {
+router.post("/blockuser", [jsonParser,adminAuth, async (req, res) => {
+
+  console.log(req.body.userId)
+
+  if(req.body.userId){
+
+    var user = await userModel.findOne({_id: req.body.userId});
+
+    console.log(user)
+
+    if(user.isBlocked)  {
+      
+      user.isBlocked = false
+
+      user.save()
+
+      res.status(200).send({message: "user unBlocked successfully"})
+
+    }else{
+
+      console.log(user)
+
+      user.isBlocked = true
+
+      user.save()
+
+      res.status(200).send({message: "user Blocked successfully"})
+
+    }
+
+  }else{
+    res.status(403).send({message: "Please provide a user to block/unblock"})
+  }
+
+}]);
+
+router.get("/", [jsonParser,adminAuth, async (req, res) => {
     
 
         //Token is valid, get all users
@@ -262,8 +302,6 @@ router.post("/addSolde", [jsonParser,auth, async (req, res) => {
   userInfos = req.body;
    
   //var userData = await userModel.findOneAndUpdate({"_id": mongoose.Types.ObjectId(userInfos._id)}, {"online": false})
-
-
 
   if (userInfos._id, userInfos.amount){
 

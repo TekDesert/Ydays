@@ -45,6 +45,7 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
                 "image": image,
                 "nbCars": 0,
                 "capacity": parkingInfo.capacity,
+                "totalRevenue": 0
             }
 
             parkingModel.create(newParking, function(err, res) {
@@ -115,6 +116,45 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
   }
  */
  
+
+}])
+
+//Protected : Add a parking
+router.get("/", [jsonParser, adminAuth, async (req, res) => {
+
+
+  //get all parking dashboard statistics
+
+  parkings = await parkingModel.find({});
+
+      if(parkings){
+
+        const Totalparkings = [];
+        var capacity;
+        var revenue = 0;
+
+        parkings.map(parking => {
+
+          //calculate % of space used
+          capacity = (parking.nbCars / parking.capacity) * 100
+          capacity = Math.round((capacity) * 100) / 100
+
+          //calculate globale revenue
+          revenue = revenue +  parking.totalRevenue
+
+          
+
+          Totalparkings.push({parking: parking, remplissage: capacity})
+
+        })
+
+        res.status(200).send([{message: "parkings found !"}, {totalParkings: Totalparkings, globalRevenue: revenue}])
+
+      }else{
+          res.status(422).send({message: "Error : missing field"}) 
+      }
+
+
 
 }])
 

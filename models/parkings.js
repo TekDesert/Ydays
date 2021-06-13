@@ -19,6 +19,9 @@ const userSchema = mongoose.Schema({
     },
     capacity: {
         type: Number
+    },
+    totalRevenue: {
+        type: Number
     }
            
 });
