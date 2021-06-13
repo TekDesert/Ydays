@@ -15,6 +15,7 @@ const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
 
 const userModel = require("../models/users");
+const parkingModel = require("../models/parkings");
 
 const { auth } = require("../middlewares/protected");
 // create application/json parser
@@ -95,20 +96,24 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
 
       if (parking && user){ //if user and parking are able to be fetched
 
+        //Calculate total price
+        var seconds = (Math.abs(reservation.actualArrivalDate - date)/1000)
+
+        totalPrice = 0.005*seconds
+
+        totalPrice = (totalPrice < 0.01) ? 0.01 : Math.round(totalPrice * 100) / 100
+
         if(user.solde >= totalPrice){ //If user has sufficient funds
 
           //save departure date
           reservation.actualDepartureDate = date
+          reservation.transactionConfirmed = 1
+          reservation.price += totalPrice 
           reservation.isScanned = reservation.isScanned + 1
 
           reservation.save()
 
-          //Calculate total price
-          var seconds = (Math.abs(reservation.actualArrivalDate - reservation.actualDepartureDate)/1000)
-
-          totalPrice = 0.005*seconds
-
-          totalPrice = (totalPrice < 0.01) ? 0.01 : Math.round(totalPrice * 100) / 100
+          
           
           //deduct price from user funds
           user.solde -= totalPrice
