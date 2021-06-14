@@ -64,6 +64,72 @@ router.get("/:token", jsonParser, async (req, res) => {
 
 })
 
+//Contact us
+router.post("/contactus", jsonParser, async (req, res) => {
+    
+    
+  contact =  req.body
+
+  if(contact.name, contact.email, contact.phone, contact.message){
+
+    //console.log("SENDING EMAIL TO : " + userData.user.email)
+    // create reusable transporter object using the default SMTP transport
+    let transporter = nodemailer.createTransport({
+                  
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+          user: 'avoraparking.meeter@gmail.com',
+          pass: 'avora2021'
+        }
+    });
+
+    // send mail with defined transport object
+    let info = await transporter.sendMail({
+      from: '"Parking Meeter by Exeption Guys " <avoraparking.meeter@gmail.com>', // sender address
+      to: "avoraparking.meeter@gmail.com", // send email to us
+      subject: "A client needs support !", // Subject line
+      text: `a Mr(s).${contact.name} has submitted a request`, // plain text body
+      html: `<h1>Hello </h1>
+            <h3 style="color:grey">Please find the client's query below</h3>
+            <h4>Name : ${contact.name} </h4>
+            <h4>Phone: ${contact.phone} </h4> 
+            <h4>Message:
+            <p> ${contact.message}</p>
+            </h4>
+            `, // html body
+    });
+
+    // send mail with defined transport object
+    let info2 = await transporter.sendMail({
+      from: '"Parking Meeter by Exeption Guys " <avoraparking.meeter@gmail.com>', // sender address
+      to: contact.email, // send email to us
+      subject: "Thank you for contacting us !", // Subject line
+      text: `your query has been received`, // plain text body
+      html: `<h1>Hello ${contact.name}</h1>
+            <h3 style="color:grey">Your query has been successfully received :</h3>
+            <hr>
+            <h4>Name : ${contact.name} </h4>
+            <h4>Phone: ${contact.phone} </h4> 
+            <h4>Message:
+            <p> ${contact.message}</p>
+            </h4>
+            <hr>
+            <h3>Please allow 2-3 business days for a response </h3>
+            `, // html body
+    });
+
+    res.status(200).send({message: "request sent !"})
+      
+    }else{
+      //There is an error in the token
+      res.status(403).send({message: "missing fields"})    
+
+    }
+
+})
+
 router.get("/QRValidation/:id", jsonParser, async (req, res) => {
 
   console.log(req.params)

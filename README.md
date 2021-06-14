@@ -202,6 +202,23 @@ Process QR Code scanning for arrival and parking departure
 GET /confirmation/QRValidation/<reservationId>
 ```
 
+Send contact us email query
+
+```http
+POST /confirmation/contactus
+```
+
+```js
+{
+    "name":"Tekdesert",
+	"email": "samy.simon@ynov.com",
+    "phone":"0658654321",
+    "message":"i want help with my account, it's been blocked !"
+}
+```
+
+
+
 ## Parkings
 
 Add a new Parking
