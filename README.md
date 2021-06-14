@@ -223,3 +223,17 @@ Admin only
     "capacity": 70
 }
 ```
+
+## Parkings
+
+Delete a Parking
+
+```http
+POST /parking/delete/parkingId
+
+Protected
+Admin only
+warning: this deletes all reservations linked to this parking
+```
+
+

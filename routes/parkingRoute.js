@@ -25,12 +25,10 @@ const jwt = require('jsonwebtoken');
 // create application/json parser
 var jsonParser = bodyParser.json()
 
-
 //Protected : Add a parking
 router.post("/", [jsonParser, adminAuth, async (req, res) => {
   
     //Un nom, une description, des coordonnées GPS (X, Y), une photo, total véhicules présents, capacité.
-
 
         parkingInfo = req.body;
 
@@ -116,6 +114,32 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
   }
  */
  
+
+}])
+
+router.post("/delete/:id", [jsonParser, adminAuth, async (req, res) => {
+
+  //delete a parking by id
+  console.log(req.params.id)
+
+  if(req.params.id){
+    parkingId = req.params.id
+
+    deletedParking = await parkingModel.findOneAndDelete({_id:parkingId})
+
+    if(deletedParking){
+      
+      //delete all subsequent reservation that had this parking as its parking
+      deletedReservations = await reservationModel.deleteMany({parkingId: deletedParking._id})
+
+      res.status(200).send({message: "Parking and reservations successfully deleted"})
+    }else{
+      res.status(403).send({message: "Error while deleting parking, please verify the parking id"})
+    }
+
+  }else{
+    res.status(403).send({message: "Please provide a parking to delete"})
+  }
 
 }])
 
