@@ -175,6 +175,12 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
         if(user.solde >= totalPrice){ //If user has sufficient funds
 
           
+          //Save parking statistics
+          parking.totalRevenue += totalPrice
+          parking.nbCars -= 1
+          //Make parking spot re-appear in list of available parking spots
+          parking.emptySpots.push(reservation.parkingSpot)
+          parking.save()
 
           //save departure date
           reservation.actualDepartureDate = date
@@ -193,12 +199,7 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
           user.solde -= totalPrice
           user.save()
 
-          //Save parking statistics
-          parking.totalRevenue += totalPrice
-          parking.nbCars -= 1
-          //Make parking spot re-appear in list of available parking spots
-          parking.emptySpots.push(reservation.parkingSpot)
-          parking.save()
+          
 
 
           console.log("CHECKOUT !" + (seconds))

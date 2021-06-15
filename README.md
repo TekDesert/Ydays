@@ -184,7 +184,8 @@ Protected
 	"parkingId": "60c37f62bb22bd3fc8a75be6",
     "arrivalDate":"2021-10-05",
     "departureDate":"2021-11-05",
-    "carPlate": "552dasdka85"
+    "carPlate": "552dasdka85",
+	"parkingSpot": "A5"
 }
 ```
 
