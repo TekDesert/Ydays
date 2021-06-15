@@ -124,7 +124,10 @@ router.post("/contactus", jsonParser, async (req, res) => {
       
     }else{
       //There is an error in the token
-      res.status(403).send({message: "missing fields"})    
+
+      console.log(req.body)
+
+      res.status(403).send({contact : req.body})    
 
     }
 
@@ -171,11 +174,16 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
 
         if(user.solde >= totalPrice){ //If user has sufficient funds
 
+          
+
           //save departure date
           reservation.actualDepartureDate = date
           reservation.transactionConfirmed = 1
           reservation.price += totalPrice 
           reservation.isScanned = reservation.isScanned + 1
+          reservation.parkingSpot= ""
+
+          
 
           reservation.save()
 
@@ -188,6 +196,8 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
           //Save parking statistics
           parking.totalRevenue += totalPrice
           parking.nbCars -= 1
+          //Make parking spot re-appear in list of available parking spots
+          parking.emptySpots.push(reservation.parkingSpot)
           parking.save()
 
 

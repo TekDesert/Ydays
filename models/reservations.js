@@ -14,6 +14,9 @@ const userSchema = mongoose.Schema({
     departureDate: {
         type: Date
     },
+    parkingSpot: {
+        type: String
+    },
     carPlate: {
         type: String
     },

@@ -22,6 +22,7 @@ const app = express();
 app.use(express.json())
 
 const jwt = require('jsonwebtoken');
+const reservations = require('../models/reservations');
 // create application/json parser
 var jsonParser = bodyParser.json()
 
@@ -36,6 +37,13 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
 
             const image = (parkingInfo.image === undefined) ? "default.jpg" :  parkingInfo.image
 
+            //Every empty spot in our parking
+            emptySpotList = [];
+            for (let i = 0; i < parkingInfo.capacity; i++) {    
+              emptySpotList.push("A"+i) 
+              
+            }
+
             var newParking = {
                 "name": parkingInfo.name,
                 "description": parkingInfo.description,
@@ -43,10 +51,12 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
                 "image": image,
                 "nbCars": 0,
                 "capacity": parkingInfo.capacity,
-                "totalRevenue": 0
+                "totalRevenue": 0,
+                "emptySpots": emptySpotList
             }
 
             parkingModel.create(newParking, function(err, res) {
+
                 if (err) throw err;
                 
             })
@@ -143,6 +153,41 @@ router.post("/delete/:id", [jsonParser, adminAuth, async (req, res) => {
 
 }])
 
+
+//Protected : Get all reservations for a parking to see what are the times that it is empty to make a reservation
+router.get("/freespace/:parkingId", [jsonParser, auth, async (req, res) => {
+
+
+  if(req.params.parkingId){
+
+    if(req.params.parkingId.length < 24){
+      res.status(422).send({message: "Error : invalid parking id"}) 
+    }
+
+    const reservations = await reservationModel.find({parkingId: req.params.parkingId})
+
+    var unavailableTimes = []
+
+      if(reservations.length !== 0){
+
+        reservations.map(reservation => (
+
+          unavailableTimes.push({from: reservation.arrivalDate, to: reservation.departureDate})
+
+        ))
+
+        res.status(200).send(unavailableTimes)
+      }else{
+        res.status(422).send({message: "Error : inexistant parking"}) 
+      } 
+
+
+    }else{
+        res.status(422).send({message: "Error : missing field"}) 
+    }    
+
+}])
+
 //Protected : Add a parking
 router.get("/", [jsonParser, adminAuth, async (req, res) => {
 
@@ -156,23 +201,24 @@ router.get("/", [jsonParser, adminAuth, async (req, res) => {
         const Totalparkings = [];
         var capacity;
         var revenue = 0;
+        var averagefilling = 0;
 
-        parkings.map(parking => {
+        parkings.map((parking, loop) => {
 
           //calculate % of space used
           capacity = (parking.nbCars / parking.capacity) * 100
           capacity = Math.round((capacity) * 100) / 100
 
           //calculate globale revenue
-          revenue = revenue +  parking.totalRevenue
+          averagefilling = (loop === 0) ? averagefilling =   capacity : averagefilling = (averagefilling +  capacity)/loop
 
-          
+          revenue = revenue +  parking.totalRevenue
 
           Totalparkings.push({parking: parking, remplissage: capacity})
 
         })
 
-        res.status(200).send([{message: "parkings found !"}, {totalParkings: Totalparkings, globalRevenue: revenue}])
+        res.status(200).send([{message: "parkings found !"}, {totalParkings: Totalparkings, globalRevenue: revenue,averagefilling: averagefilling}])
 
       }else{
           res.status(422).send({message: "Error : missing field"}) 
@@ -181,6 +227,7 @@ router.get("/", [jsonParser, adminAuth, async (req, res) => {
 
 
 }])
+
 
 
 module.exports = router;

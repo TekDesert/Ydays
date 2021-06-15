@@ -68,7 +68,7 @@ router.post("/", [jsonParser,auth, async (req, res) => {
   //console.log(req.body)
 
 
-  if( userInfos.userId && userInfos.arrivalDate  && userInfos.carPlate && userInfos.parkingId) {
+  if( userInfos.userId && userInfos.arrivalDate  && userInfos.carPlate && userInfos.parkingId && userInfos.parkingSpot) {
       
       console.log("GOOD FOR RESERVATION !")
 
@@ -107,68 +107,75 @@ router.post("/", [jsonParser,auth, async (req, res) => {
 
           if ((updateParkingCount.nbCars + 1) <= (updateParkingCount.capacity)){ //If we haven't reached capacity
             
+            //add our car to the total car list
             updateParkingCount.nbCars += 1
-            updateParkingCount.save()
-
+            //Remove the spot from the list of available spots
+            const removeSpot = updateParkingCount.emptySpots.indexOf(userInfos.parkingSpot); 
+            if (removeSpot > -1) {
+              updateParkingCount.emptySpots.splice(removeSpot, 1);
+              updateParkingCount.save()
              
-            //generation of QR code, this code will be scanned on arrival to parking 
-            var qrURL = process.env.API + "/confirmation/QRValidation/"+ id
-
-            qr.toDataURL(qrURL, async (err,src) => {
-              if (err){
-                console.log(err)
-                res.status(403).send([{message: "error generating QRCode, please try again"}])
-              }else{
-
-                
-                var newReservation = {
-
-                  '_id':  id, //Give temporary objectId before getting the one generated
-                  "userId": userInfos.userId,
-                  //"parkingId": userInfos.parkingId,
-                  "parkingId": userInfos.parkingId,
+              //generation of QR code, this code will be scanned on arrival to parking 
+              var qrURL = process.env.API + "/confirmation/QRValidation/"+ id
+  
+              qr.toDataURL(qrURL, async (err,src) => {
+                if (err){
+                  console.log(err)
+                  res.status(403).send([{message: "error generating QRCode, please try again"}])
+                }else{
                   
-                  "arrivalDate": userInfos.arrivalDate, //Block spot in the parking
-                  "departureDate": userInfos.departureDate,
-                  "carPlate": userInfos.carPlate,
-                  "QRCode": src,
-                  "isScanned": 0,
-                  "actualArrivalDate":"",
-                  "actualDepartureDate": "",
-                  "price": 0,
-                  "transactionConfirmed": 0 //0 is not confirmed ; 1 is confirmed ; 2 is canceled
-                }
-
-                var userData = await userModel.findOneAndUpdate(
-                  {_id: mongoose.Types.ObjectId(userInfos.userId)},
-                  { $push: { reservations: id  } },
-                  {useFindAndModify: false}
-                )
-
-                
-      
-                console.log(userData)
-            
-                var form = await formModel.create(newReservation, function(err, res) {
-                    if (err) throw err;
+                  var newReservation = {
+  
+                    '_id':  id, //Give temporary objectId before getting the one generated
+                    "userId": userInfos.userId,
+                    //"parkingId": userInfos.parkingId,
+                    "parkingId": userInfos.parkingId,
                     
-                })
-                //var reservationQR = await reservationModel.findOneAndUpdate({"_id": id}, {"QRCode": src})
-                //console.log(reservationQR)
-                //console.log(src)
-                //console.log(qrURL)
-
+                    "arrivalDate": userInfos.arrivalDate, //Block spot in the parking
+                    "departureDate": userInfos.departureDate,
+                    "carPlate": userInfos.carPlate,
+                    "QRCode": src,
+                    "isScanned": 0,
+                    "actualArrivalDate":"",
+                    "actualDepartureDate": "",
+                    "price": 0,
+                    "parkingSpot": userInfos.parkingSpot,
+                    "transactionConfirmed": 0 //0 is not confirmed ; 1 is confirmed ; 2 is canceled
+                  }
+  
+                  var userData = await userModel.findOneAndUpdate(
+                    {_id: mongoose.Types.ObjectId(userInfos.userId)},
+                    { $push: { reservations: id  } },
+                    {useFindAndModify: false}
+                  )
+  
+                  
+        
+                  console.log(userData)
               
+                  var saveReservation = await formModel.create(newReservation, function(err, res) {
+                      if (err)throw err;
+                      
+                  })
+                  
+  
+                  //var reservationQR = await reservationModel.findOneAndUpdate({"_id": id}, {"QRCode": src})
+                  //console.log(reservationQR)
+                  //console.log(src)
+                  //console.log(qrURL)
+  
+                
+  
+                  sendEmailQR(userInfos.userId, src)
+  
+                  res.status(200).send([{message: "success"},{_id: newReservation._id, parkingId: newReservation.parkingId, arrivalDate: newReservation.arrivalDate, departureDate: newReservation.departureDate, carPlate: newReservation.carPlate, qrcode: newReservation.QRCode}])
+                }
+              })
 
-                sendEmailQR(userInfos.userId, src)
-
-                res.status(200).send([{message: "success"},{_id: newReservation._id, parkingId: newReservation.parkingId, arrivalDate: newReservation.arrivalDate, departureDate: newReservation.departureDate, carPlate: newReservation.carPlate, qrcode: newReservation.QRCode}])
-              }
-            })
-          
-
-
-
+            }else{
+              res.status(403).send([{message: "error: specified parking spot does not exist or is not available"}])
+            }
+        
           }else{
             res.status(403).send([{message: "error : Parking is full"}])
           }
@@ -222,6 +229,9 @@ router.get("/", [jsonParser, adminAuth, async (req, res) => {
   }
 
 }])
+
+
+
 
 //Protected : Get reservation based on the user's ID
 router.get("/user/:userId", [jsonParser, auth, async (req, res) => {
