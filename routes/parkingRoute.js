@@ -210,7 +210,7 @@ router.get("/", [jsonParser, adminAuth, async (req, res) => {
           capacity = Math.round((capacity) * 100) / 100
 
           //calculate globale revenue
-          averagefilling = (loop === 0) ? averagefilling =   capacity : averagefilling = (averagefilling +  capacity)/loop
+          averagefilling = (loop == 0) ? averagefilling =   capacity : averagefilling = (averagefilling +  capacity)/(loop+1)
 
           revenue = revenue +  parking.totalRevenue
 
