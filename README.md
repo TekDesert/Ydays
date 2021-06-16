@@ -189,6 +189,15 @@ Protected
 }
 ```
 
+Cancel a reservation for a user
+
+```http
+PUT /reservation/cancel/<reservationId>
+
+Protected
+```
+
+
 ## Confirmations
 
 Confirm an email account (done automatically when clicking email link)
@@ -247,7 +256,7 @@ Admin only
 Delete a Parking
 
 ```http
-POST /parking/delete/parkingId
+DELETE /parking/parkingId
 
 Protected
 Admin only

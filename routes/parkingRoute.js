@@ -127,7 +127,7 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
 
 }])
 
-router.post("/delete/:id", [jsonParser, adminAuth, async (req, res) => {
+router.delete("/:id", [jsonParser, adminAuth, async (req, res) => {
 
   //delete a parking by id
   console.log(req.params.id)

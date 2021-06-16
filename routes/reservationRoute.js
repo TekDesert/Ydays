@@ -260,6 +260,34 @@ router.get("/user/:userId", [jsonParser, auth, async (req, res) => {
 
 }])
 
+//Protected : Cancel a reservation by id
+router.put("/cancel/:reservationId", [jsonParser, auth, async(req, res) => {
+
+  if(req.params.reservationId || req.params.reservationId.length == 24){
+    
+    reservation = await reservationModel.findOne({_id: req.params.reservationId},);
+    parking = await parkingModel.findOne({_id: reservation.parkingId})
+    
+    //add reservation spot to parking empty spot list
+    parking.emptySpots.push(reservation.parkingSpot)
+    parking.nbCars -= 1
+    parking.save()
+
+    // make empty spot
+    reservation.parkingSpot = ""
+    reservation.transactionConfirmed = 2 //cancel reservation
+    reservation.save()
+
+    res.status(200).send({message: "reservation canceled successfully"});
+
+  }else{
+
+
+    res.status(403).send({message: "paramater failure"});
+  }
+
+}])
+
 //Protected : Get reservation based on the user's ID
 router.get("/user/dashboard/:userId", [jsonParser, auth, async (req, res) => {
   
