@@ -49,7 +49,7 @@ router.post("/", jsonParser, async (req, res) => {
 
           var crypted_passwd = bcrypt.hashSync(userInfos.password, 1);
           const image = (userInfos.image === undefined) ? "default.jpg" :  userInfos.image
-
+          const birthDate = (userInfos.birthDate === undefined) ? Date.now() : userInfos.birthDate
 
           var newUser = {
 
@@ -64,7 +64,9 @@ router.post("/", jsonParser, async (req, res) => {
             "isBlocked": false,
             "isAdmin": false,
             "online": false,
-            "emailConfirmed": false
+            "birthDate": birthDate,
+            "emailConfirmed": false,
+            "firstLogin": true,
           }
        
            userModel.create(newUser, function(err, res) {
@@ -159,6 +161,13 @@ router.post("/login", jsonParser, async (req, res) => {
         }else{
           //MAKE THE USER APPEAR ONLINE
           userData.online = true;
+          if(userData.firstLogin){
+            userData.firstLogin = false;
+            firstLoginMessage = 1 //Make first login appear true for first time in API
+          }else{
+            firstLoginMessage = 0  //First login is always false otherwise
+          }
+          
           await userData.save();
 
           //CREATE JWT TOKEN THAT EXPIRES IN ONE HOUR
@@ -171,13 +180,14 @@ router.post("/login", jsonParser, async (req, res) => {
               username: userData.username,
               profilePicture: userData.profilePicture,
               solde: userData.solde,
+              birthDate: userData.birthDate,
               isAdmin: userData.isAdmin
             }
           }, process.env.TOKEY);
 
   
           //RETURN THE USER INFORMATIONS WITH SUCCESS CODE
-          res.status(200).send({_id: userData._id, username: userData.username, email: userData.email, profilePicture: userData.profilePicture, solde: userData.solde, carPlate: userData.carPlate, token: token})
+          res.status(200).send({_id: userData._id, birthDate: userData.birthDate, firstLogin: firstLoginMessage, username: userData.username, email: userData.email, profilePicture: userData.profilePicture, solde: userData.solde, carPlate: userData.carPlate, token: token})
           
         }
 

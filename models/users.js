@@ -23,6 +23,9 @@ const userSchema = mongoose.Schema({
     online: {
         type: Boolean
     },
+    birthDate: {
+        type: Date
+    },
     isBlocked: {
         type: Boolean
     },
@@ -30,6 +33,9 @@ const userSchema = mongoose.Schema({
         type: Boolean
     },
     emailConfirmed: {
+        type: Boolean
+    },
+    firstLogin: {
         type: Boolean
     }
            
