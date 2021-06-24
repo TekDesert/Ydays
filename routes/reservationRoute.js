@@ -187,7 +187,7 @@ router.post("/", [jsonParser,auth,updateIOT, async (req, res) => {
 
                   sendEmailQR(userInfos.userId, src)
   
-                  res.status(200).send([{message: "success"},{dude: "bro"}])
+                  res.status(200).send([{message: "success"},{reservation: newReservation}])
                 }
               })
 
