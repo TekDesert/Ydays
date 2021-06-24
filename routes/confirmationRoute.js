@@ -125,8 +125,6 @@ router.post("/contactus", jsonParser, async (req, res) => {
     }else{
       //There is an error in the token
 
-      console.log(req.body)
-
       res.status(403).send({contact : req.body})    
 
     }
@@ -135,7 +133,6 @@ router.post("/contactus", jsonParser, async (req, res) => {
 
 router.get("/QRValidation/:id", jsonParser, async (req, res) => {
 
-  console.log(req.params)
 
   if(req.params.id !== undefined){
 
@@ -145,8 +142,6 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
 
     if (reservation.isScanned == 0 ){
  
-
-      console.log("CHECK IN !")
       //user is entering the parking
       reservation.actualArrivalDate = date
       reservation.isScanned = reservation.isScanned + 1
@@ -158,8 +153,7 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
     }else if(reservation.isScanned == 1){
 
       //user is leaving the parking
-      console.log("DEPARTURE !")
-
+      
       var parking = await parkingModel.findOne({_id: mongoose.Types.ObjectId(reservation.parkingId)})
       var user = await userModel.findOne({_id: reservation.userId})
 
@@ -175,38 +169,70 @@ router.get("/QRValidation/:id", jsonParser, async (req, res) => {
         if(user.solde >= totalPrice){ //If user has sufficient funds
 
           
-          //Save parking statistics
-          parking.totalRevenue += totalPrice
-          parking.nbCars -= 1
-          //Make parking spot re-appear in list of available parking spots
-          parking.emptySpots.push(reservation.parkingSpot)
-          parking.save()
-
-          //save departure date
-          reservation.actualDepartureDate = date
-          reservation.transactionConfirmed = 1
-          reservation.price += totalPrice 
-          reservation.isScanned = reservation.isScanned + 1
-          reservation.parkingSpot= ""
-
           
+          //Delete reservation from parking spot list
+          //Search our list of parking spot for the one we canceled our reservation for
+          for (let i = 0; i < parking.emptySpots.length; i++) {
 
-          reservation.save()
+            //keep current loop spot saved
+            currentSpot = parking.emptySpots[i]
+            parkingPlacePosition = -1
+            
+            //We found the spot to remove our reservation in
+            if(currentSpot.spotName === reservation.parkingSpot){
 
-          
-          
-          //deduct price from user funds
-          user.solde -= totalPrice
-          user.save()
+              
 
-          
+              parkingPlacePosition = i
+              spotToDelete = -1
+
+              //Look for our spot reservation list to remove our reservation
+              currentSpot.spotUnavailable.map((spot,index) => {
+                
+                if((spot.reservationId).toString() === (reservation._id).toString()) {
+                  //save index of reservation to delete in parking empty spot list
+                  
+                  spotToDelete =index
+                }
+
+              })
+
+              break;
+            }
+          }
+
+          if(spotToDelete !== -1 && parkingPlacePosition !== -1){
+
+            //Save parking statistics
+            parking.totalRevenue += totalPrice
+            parking.nbCars -= 1
+            parking.emptySpots[parkingPlacePosition].spotUnavailable.splice(spotToDelete, 1);
+            parking.save()
+
+            //save departure date
+            reservation.actualDepartureDate = date
+            reservation.transactionConfirmed = 1
+            reservation.price += totalPrice 
+            reservation.isScanned = reservation.isScanned + 1
+            reservation.parkingSpot= ""
+
+            reservation.save()
+
+            //deduct price from user funds
+            user.solde -= totalPrice
+            user.save()
+
+            res.status(200).send([{message:"Thanks for visiting !"}, {total: totalPrice}])
 
 
-          console.log("CHECKOUT !" + (seconds))
-          console.log("Total Price : " + totalPrice)
+          }else{
 
-          res.status(200).send([{message:"Thanks for visiting !"}, {total: totalPrice}])
+            console.log(parkingPlacePosition)
+            console.log(spotToDelete)
 
+            res.status(500).send({message: "Error: could not find reservation spot in parking"});
+          }
+ 
 
         }else{
 

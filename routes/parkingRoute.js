@@ -13,7 +13,7 @@ const qr = require("qrcode");
 var ObjectID = require('mongodb').ObjectID;
 
 var mongoose = require('mongoose');
-const { auth, adminAuth } = require('../middlewares/protected');
+const { auth, adminAuth, updateIOT } = require('../middlewares/protected');
 const reservationModel = require('../models/reservations');
 
 const nodemailer = require("nodemailer");
@@ -26,28 +26,71 @@ const reservations = require('../models/reservations');
 // create application/json parser
 var jsonParser = bodyParser.json()
 
-//Protected : Add a parking
-router.post("/", [jsonParser, adminAuth, async (req, res) => {
-  
-    //Un nom, une description, des coordonnées GPS (X, Y), une photo, total véhicules présents, capacité.
+var multer = require('multer')
+//const upload = multer({dest: 'images/'})
+const axios = require('axios')
 
+const fileStorage = multer.diskStorage({
+
+  destination: (req,file, cb) => {
+    cb(null, './assets/images')
+  },
+  filename: (req, file, cb) => {
+    if(file !== undefined){
+
+      cb(null,  file.originalname)
+    }
+    
+  }
+})
+
+const {uploadFile} = require('../s3')
+
+const upload = multer({storage: fileStorage})
+
+//Protected : Add a parking
+router.post("/", [jsonParser, adminAuth,upload.single('image'),   async (req, res) => {
+  
+        
         parkingInfo = req.body;
 
         if(parkingInfo.name && parkingInfo.description && parkingInfo.coord && parkingInfo.capacity){
 
-            const image = (parkingInfo.image === undefined) ? "default.jpg" :  parkingInfo.image
+          var image = "default.jpg"
+            //si il y'a une image a upload
+            if(req.file !== undefined) {
+              const result = await uploadFile(req.file) 
+              var image = req.file.originalname
+            }
 
             //Every empty spot in our parking
             emptySpotList = [];
-            for (let i = 0; i < parkingInfo.capacity; i++) {    
-              emptySpotList.push("A"+i) 
+            
+
+            for (let i = 0; i < parkingInfo.capacity; i++) {
               
+ 
+              emptySpotItem = {
+                spotName: "A"+i,
+                isOccupied: false,
+                spotUnavailable: [] 
+                /*
+                This can is an example of what can be inside spotUnavailable
+                {
+                  reservationId: mongoose.Types.ObjectId("60c6726d3b70302b18b1fef9"),
+                  from: Date.now(),
+                  to: Date.now(),
+                  status: 0 //0 reserved 1 taken
+                }
+                */
+              } 
+              emptySpotList.push(emptySpotItem) 
             }
 
             var newParking = {
                 "name": parkingInfo.name,
                 "description": parkingInfo.description,
-                "coord": parkingInfo.coord,
+                "coord": JSON.parse(parkingInfo.coord), //
                 "image": image,
                 "nbCars": 0,
                 "capacity": parkingInfo.capacity,
@@ -65,6 +108,7 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
 
 
         }else{
+
             res.status(422).send({message: "Error : missing field"}) 
         }
 
@@ -129,8 +173,6 @@ router.post("/", [jsonParser, adminAuth, async (req, res) => {
 
 router.delete("/:id", [jsonParser, adminAuth, async (req, res) => {
 
-  //delete a parking by id
-  console.log(req.params.id)
 
   if(req.params.id){
     parkingId = req.params.id
@@ -155,7 +197,7 @@ router.delete("/:id", [jsonParser, adminAuth, async (req, res) => {
 
 
 //Protected : Get all reservations for a parking to see what are the times that it is empty to make a reservation
-router.get("/freespace/:parkingId", [jsonParser, auth, async (req, res) => {
+router.get("/freespace/:parkingId", [jsonParser, auth, updateIOT, async (req, res) => {
 
 
   if(req.params.parkingId){
@@ -164,21 +206,32 @@ router.get("/freespace/:parkingId", [jsonParser, auth, async (req, res) => {
       res.status(422).send({message: "Error : invalid parking id"}) 
     }
 
+    const parking = await parkingModel.find({_id: mongoose.Types.ObjectId(req.params.parkingId)})
     const reservations = await reservationModel.find({parkingId: req.params.parkingId})
 
     var unavailableTimes = []
 
-      if(reservations.length !== 0){
+      if(parking.length !== 0){
 
-        reservations.map(reservation => (
+        // reservations.map(reservation => (
 
-          unavailableTimes.push({from: reservation.arrivalDate, to: reservation.departureDate})
+        //   unavailableTimes.push({from: reservation.arrivalDate, to: reservation.departureDate})
 
+        // ))
+        //Get each parking place freespot status and timeline
+        parking[0].emptySpots.map(spot => (
+          unavailableTimes.push(spot)
+         
         ))
 
-        res.status(200).send(unavailableTimes)
+        
+        console.log("is occupied " + res.locals.IOT_STATUS)
+        
+        IOT_ONOFF = (res.locals.IOT_DEVICEON )? "IOT device is on !" : "IOT device is off or timed out..." //get the status of the IOT
+
+        res.status(200).send({reservedSpotTime: unavailableTimes, isOccupied: res.locals.IOT_STATUS, IOT_ONOFF: IOT_ONOFF }) //Is occupied is set to true if 
       }else{
-        res.status(422).send({message: "Error : inexistant parking"}) 
+        res.status(422).send({message: "Error : parking has no reservation or doesn't exist"}) 
       } 
 
 
@@ -202,6 +255,7 @@ router.get("/", [jsonParser, adminAuth, async (req, res) => {
         var capacity;
         var revenue = 0;
         var averagefilling = 0;
+        var totalnbCars = 0;
 
         parkings.map((parking, loop) => {
 
@@ -214,11 +268,13 @@ router.get("/", [jsonParser, adminAuth, async (req, res) => {
 
           revenue = revenue +  parking.totalRevenue
 
+          totalnbCars += parking.nbCars
+
           Totalparkings.push({parking: parking, remplissage: capacity})
 
         })
 
-        res.status(200).send([{message: "parkings found !"}, {totalParkings: Totalparkings, globalRevenue: revenue,averagefilling: averagefilling}])
+        res.status(200).send([{message: "parkings found !"}, {totalParkings: Totalparkings, globalRevenue: revenue,averagefilling: averagefilling, totalnbCars: totalnbCars}])
 
       }else{
           res.status(422).send({message: "Error : missing field"}) 

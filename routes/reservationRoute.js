@@ -13,7 +13,7 @@ const qr = require("qrcode");
 var ObjectID = require('mongodb').ObjectID;
 
 var mongoose = require('mongoose');
-const { auth, adminAuth } = require('../middlewares/protected');
+const { auth, adminAuth,updateIOT } = require('../middlewares/protected');
 const reservationModel = require('../models/reservations');
 
 const nodemailer = require("nodemailer");
@@ -57,49 +57,17 @@ sendEmailQR = async (userId, QRCode) => {
   });
 }
 
-//PROTECTED ROUTE : We submit a reservation here
-router.post("/", [jsonParser,auth, async (req, res) => {
+//PROTECTED ROUTE : We submit a reservation here - updateIOT to update our spot status
+router.post("/", [jsonParser,auth,updateIOT, async (req, res) => {
     
     
   userInfos = req.body;
-
-  console.log("Saving your Reservation... : \n" )
 
   //console.log(req.body)
 
 
   if( userInfos.userId && userInfos.arrivalDate  && userInfos.carPlate && userInfos.parkingId && userInfos.parkingSpot) {
-      
-      console.log("GOOD FOR RESERVATION !")
 
-      /*var checkAlreadyExist = await userModel.findOne({"email": userInfos.email})
-
-      if (checkAlreadyExist) {
-
-        res.status(409).send({message: "user already exists"}) 
-
-      }
-      else {*/
-        //set departure date
-        
-
-          //get the user that has done the reservation
-          /*var userData =  await formModel.aggregate([
-            {
-              $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "user"
-              }
-            },
-            { $unwind: "$user" },
-            { $match: { userId: mongoose.Types.ObjectId("60c1dbaf31a1f72cc4b25631") } },
-            { $project: { "user.password": 0, "user._id":0, "user.username":0, "user.profilePicture":0,"user.isBlocked":0,"user.isAdmin":0, "user.online":0,"user.emailConfirmed":0,"user.__v":0} } // Return all but the specified fields
-          ]);*/
-
-
-          
 
           const id = new ObjectID()
 
@@ -109,18 +77,80 @@ router.post("/", [jsonParser,auth, async (req, res) => {
             
             //add our car to the total car list
             updateParkingCount.nbCars += 1
-            //Remove the spot from the list of available spots
-            const removeSpot = updateParkingCount.emptySpots.indexOf(userInfos.parkingSpot); 
-            if (removeSpot > -1) {
-              updateParkingCount.emptySpots.splice(removeSpot, 1);
-              updateParkingCount.save()
-             
-              //generation of QR code, this code will be scanned on arrival to parking 
+
+            //Search for the spot among the list of parking spots
+            for (let i = 0; i < updateParkingCount.emptySpots.length; i++) {
+
+              currentSpot = updateParkingCount.emptySpots[i]
+
+              
+              //We found the spot to add our reservation into
+              if(currentSpot.spotName === userInfos.parkingSpot){
+
+                parkingFound = true
+
+                //If no departure date is given
+                if(userInfos.departureDate == undefined) {
+
+                  var departureDate = new Date(userInfos.arrivalDate)
+                  departureDate = departureDate.setTime(departureDate.getTime() + (1*60*60*1000))
+  
+                }
+                else{ 
+                  departureDate = userInfos.departureDate //If no departure date is given, we'll reserve the spot for one hour
+                }
+
+                dateOverlap = false
+
+                //check if dates overlap
+                currentSpot.spotUnavailable.map(spot => {
+
+                  arrival = new Date(userInfos.arrivalDate)    
+                  departure = new Date(departureDate)   
+                  
+                  arrivalCompare = new Date(spot.from)
+                  arrivalCompare = arrivalCompare.setSeconds(arrivalCompare.getSeconds() + 1) //add one second to prevent day to day reservations from blocking
+                  departureCompare = new Date(spot.to)
+                  departureCompare = departureCompare.setSeconds(departureCompare.getSeconds() - 1) //remove one second to prevent day to day reservations from blocking
+
+
+                  if((arrival <= departureCompare) && (arrivalCompare <= departure)) {
+                    //overlapping dates
+                   dateOverlap = true
+                  }
+                })
+
+                //If dates don't overlap
+                if(!dateOverlap){
+
+                  currentSpot.spotUnavailable.push({
+                    reservationId: id,
+                    from: userInfos.arrivalDate,
+                    to: departureDate,
+                    status: false
+                  })
+  
+                  updateParkingCount.save() 
+  
+                  break;
+
+                }  
+                
+              }
+              
+            }
+
+            if(parkingFound){ //If a parking is found
+
+              if(!dateOverlap){ //If dates don't overlap
+
+                //generation of QR code, this code will be scanned on arrival to parking 
+              
               var qrURL = process.env.API + "/confirmation/QRValidation/"+ id
   
               qr.toDataURL(qrURL, async (err,src) => {
                 if (err){
-                  console.log(err)
+                  
                   res.status(403).send([{message: "error generating QRCode, please try again"}])
                 }else{
                   
@@ -132,7 +162,7 @@ router.post("/", [jsonParser,auth, async (req, res) => {
                     "parkingId": userInfos.parkingId,
                     
                     "arrivalDate": userInfos.arrivalDate, //Block spot in the parking
-                    "departureDate": userInfos.departureDate,
+                    "departureDate": departureDate,
                     "carPlate": userInfos.carPlate,
                     "QRCode": src,
                     "isScanned": 0,
@@ -150,44 +180,37 @@ router.post("/", [jsonParser,auth, async (req, res) => {
                   )
   
                   
-        
-                  console.log(userData)
-              
                   var saveReservation = await formModel.create(newReservation, function(err, res) {
                       if (err)throw err;
                       
                   })
-                  
-  
-                  //var reservationQR = await reservationModel.findOneAndUpdate({"_id": id}, {"QRCode": src})
-                  //console.log(reservationQR)
-                  //console.log(src)
-                  //console.log(qrURL)
-  
-                
-  
+
                   sendEmailQR(userInfos.userId, src)
   
-                  res.status(200).send([{message: "success"},{_id: newReservation._id, parkingId: newReservation.parkingId, arrivalDate: newReservation.arrivalDate, departureDate: newReservation.departureDate, carPlate: newReservation.carPlate, qrcode: newReservation.QRCode}])
+                  res.status(200).send([{message: "success"},{dude: "bro"}])
                 }
               })
 
+                
+
+              }else{
+                res.status(403).send({message: "Dates overlap"})
+              }
+
             }else{
-              res.status(403).send([{message: "error: specified parking spot does not exist or is not available"}])
+              res.status(403).send({message: "parking not found"})
             }
-        
-          }else{
+
+            
+              
+            }
+          else{
             res.status(403).send([{message: "error : Parking is full"}])
           }
 
-         
-
-
-
-         
-     // }
-
   }else{
+    
+
     res.status(422).send({message: "missing fields"}) 
   }
 
@@ -197,12 +220,6 @@ router.post("/", [jsonParser,auth, async (req, res) => {
 router.get("/", [jsonParser, adminAuth, async (req, res) => {
       
     //Optional: we can filter by parking id and/or by arrival date - If no filters we'll display all reservations
-
-    console.log( req.query.parking)
-
-    console.log(req.query.arrivalDate )
-
-
 
     var getAllreservations = await reservationModel.find(
       (req.query.arrivalDate == undefined)? 
@@ -263,27 +280,63 @@ router.get("/user/:userId", [jsonParser, auth, async (req, res) => {
 //Protected : Cancel a reservation by id
 router.put("/cancel/:reservationId", [jsonParser, auth, async(req, res) => {
 
-  if(req.params.reservationId || req.params.reservationId.length == 24){
+  if(req.params.reservationId && req.params.reservationId.length == 24){
     
     reservation = await reservationModel.findOne({_id: req.params.reservationId},);
     parking = await parkingModel.findOne({_id: reservation.parkingId})
     
-    //add reservation spot to parking empty spot list
-    parking.emptySpots.push(reservation.parkingSpot)
-    parking.nbCars -= 1
-    parking.save()
+    //Search our list of parking spot for the one we canceled our reservation for
+    for (let i = 0; i < parking.emptySpots.length; i++) {
 
-    // make empty spot
-    reservation.parkingSpot = ""
-    reservation.transactionConfirmed = 2 //cancel reservation
-    reservation.save()
+      //keep current loop spot saved
+      currentSpot = parking.emptySpots[i]
+      parkingPlacePosition = -1
+      
+      //We found the spot to remove our reservation in
+      if(currentSpot.spotName === reservation.parkingSpot){
 
-    res.status(200).send({message: "reservation canceled successfully"});
+        parkingPlacePosition = i
+        spotToDelete = -1
+
+        //check if dates overlap
+        currentSpot.spotUnavailable.map((spot,index) => {
+
+          
+
+          if((spot.reservationId).toString() === req.params.reservationId) {
+            //save index of reservation to delete in parking empty spot list
+            spotToDelete =index
+          }
+
+        })
+
+        break;
+      }
+    }
+
+    if(spotToDelete !== -1 && parkingPlacePosition !== -1){
+
+      parking.nbCars -= 1
+      parking.emptySpots[parkingPlacePosition].spotUnavailable.splice(spotToDelete, 1);
+      parking.save()
+
+      // make empty spot
+      reservation.parkingSpot = ""
+      reservation.transactionConfirmed = 2 //cancel reservation
+      reservation.save()
+
+      res.status(200).send({message: "reservation canceled successfully"});
+
+    }else{
+      res.status(500).send({message: "Error: could not find reservation spot in parking"});
+    }
+
+    
 
   }else{
 
 
-    res.status(403).send({message: "paramater failure"});
+    res.status(403).send({message: "please provide a valid reservation id"});
   }
 
 }])
@@ -321,7 +374,7 @@ router.get("/user/dashboard/:userId", [jsonParser, auth, async (req, res) => {
       totalTime: totalTime,
       userSolde: getUserSolde
     }
-    console.log(reservationStats)
+ 
 
       res.status(200).send(reservationStats) 
   

@@ -32,16 +32,11 @@ router.post("/", jsonParser, async (req, res) => {
     
   userInfos = req.body;
 
-  console.log("Registering user.... : \n" )
-
-  console.log(req.body)
-
 
   if(userInfos.username &&  userInfos.email && userInfos.carPlate && userInfos.password && userInfos.passwordConfirm) {
 
     if(userInfos.password === userInfos.passwordConfirm){
 
-      console.log("GOOD FOR REGISTER !")
 
       var checkAlreadyExist = await userModel.findOne({"email": userInfos.email})
 
@@ -106,7 +101,6 @@ router.post("/", jsonParser, async (req, res) => {
                 data: newUser._id
               }, process.env.TOKEY);
 
-              console.log(token)
 
               // send mail with defined transport object
               let info = await transporter.sendMail({
@@ -124,8 +118,7 @@ router.post("/", jsonParser, async (req, res) => {
                       </a>`, // html body
               });
 
-              console.log("Message sent: %s", info.messageId);
-
+  
       }
 
     }else{
@@ -143,15 +136,14 @@ router.post("/", jsonParser, async (req, res) => {
 
 router.post("/login", jsonParser, async (req, res) => {
   //CHECK USER INFORMATIONS
-  console.log(req.body);
 
   userInfos = req.body;
    
   var userData = await userModel.findOne({"email": userInfos.email})
 
-  
+  if(req.body.email && req.body.password){
 
-  if (userData) {
+    if (userData) {
 
       if(bcrypt.compareSync(userInfos.password, userData.password)) {
 
@@ -175,15 +167,17 @@ router.post("/login", jsonParser, async (req, res) => {
             data: {
               id: userData._id,
               email: userData.email,
+              carPlate: userData.carPlate,
               username: userData.username,
+              profilePicture: userData.profilePicture,
+              solde: userData.solde,
               isAdmin: userData.isAdmin
             }
           }, process.env.TOKEY);
 
-          console.log(token)
-
+  
           //RETURN THE USER INFORMATIONS WITH SUCCESS CODE
-          res.status(200).send({_id: userData._id, username: userData.username, email: userData.email, token: token})
+          res.status(200).send({_id: userData._id, username: userData.username, email: userData.email, profilePicture: userData.profilePicture, solde: userData.solde, carPlate: userData.carPlate, token: token})
           
         }
 
@@ -198,11 +192,16 @@ router.post("/login", jsonParser, async (req, res) => {
     res.status(403).send({message: "user does not exist"})
   }
 
+  }else{
+    res.status(403).send({message: "missing fields"})
+  }
+
+  
+
 })
 
 router.post("/logout", [jsonParser,auth , async (req, res) => {
   //CHECK USER INFORMATIONS
-  console.log(req.body);
 
   userInfos = req.body;
    
@@ -243,13 +242,11 @@ router.get("/online", [jsonParser, adminAuth, async (req, res) => {
 
 router.post("/blockuser", [jsonParser,adminAuth, async (req, res) => {
 
-  console.log(req.body.userId)
 
   if(req.body.userId){
 
     var user = await userModel.findOne({_id: req.body.userId});
 
-    console.log(user)
 
     if(user.isBlocked)  {
       
@@ -260,8 +257,6 @@ router.post("/blockuser", [jsonParser,adminAuth, async (req, res) => {
       res.status(200).send({message: "user unBlocked successfully"})
 
     }else{
-
-      console.log(user)
 
       user.isBlocked = true
 
@@ -297,8 +292,7 @@ router.get("/", [jsonParser,adminAuth, async (req, res) => {
 
 router.post("/addSolde", [jsonParser,auth, async (req, res) => {
   //CHECK USER INFORMATIONS
-  console.log(req.body);
-
+ 
   userInfos = req.body;
    
   //var userData = await userModel.findOneAndUpdate({"_id": mongoose.Types.ObjectId(userInfos._id)}, {"online": false})

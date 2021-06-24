@@ -246,12 +246,9 @@ Admin only
     "description": "my park",
     "coord": [1,25],
     "image": "yes.jpg", //Optional
-    "nbCars": 15,
-    "capacity": 70
+    "capacity": 15
 }
 ```
-
-## Parkings
 
 Delete a Parking
 
