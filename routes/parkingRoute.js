@@ -241,8 +241,29 @@ router.get("/freespace/:parkingId", [jsonParser, auth, updateIOT, async (req, re
 
 }])
 
+//Get a specific parking, protected
+router.get("/:id", [jsonParser, auth,updateIOT, async (req, res) => {
+
+  if(req.params.id.length == 24){
+
+    parking = await parkingModel.findOne({_id: mongoose.Types.ObjectId(req.params.id)})
+
+    if(parking){
+      res.status(200).send({message: "Fetched parking successfully", parking: parking, isOccupied: res.locals.IOT_STATUS,})
+    }else{
+      res.status(403).send({message: "parking not found"})
+    }
+
+    
+
+  }else{
+    res.status(403).send({message: "Please provide a valid parking ID"})
+  }
+
+}])
+
 //Protected : Add a parking
-router.get("/", [jsonParser, adminAuth, async (req, res) => {
+router.get("/", [jsonParser, adminAuth,updateIOT, async (req, res) => {
 
 
   //get all parking dashboard statistics

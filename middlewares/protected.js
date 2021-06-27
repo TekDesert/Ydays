@@ -39,6 +39,7 @@ const auth = (req, res, next) =>{
 const updateIOT = async (req, res, next) =>{
   //Fetch IOT spot
   
+  console.log("executed !")
 
   await axios
   .get(

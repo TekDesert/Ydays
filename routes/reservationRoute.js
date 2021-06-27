@@ -63,6 +63,8 @@ router.post("/", [jsonParser,auth,updateIOT, async (req, res) => {
     
   userInfos = req.body;
 
+  console.log(userInfos)
+
   //console.log(req.body)
 
 
@@ -215,6 +217,8 @@ router.post("/", [jsonParser,auth,updateIOT, async (req, res) => {
   }
 
 }])
+
+
 
 //Protected 
 router.get("/", [jsonParser, adminAuth, async (req, res) => {
